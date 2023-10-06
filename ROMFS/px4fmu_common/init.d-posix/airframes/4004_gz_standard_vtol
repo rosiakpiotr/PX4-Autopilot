@@ -64,6 +64,7 @@ param set-default SIM_GZ_EC_MAX5 3500
 param set-default SIM_GZ_SV_FUNC1 201
 param set-default SIM_GZ_SV_FUNC2 202
 param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 10000
 
 param set-default COM_RC_IN_MODE 1
 param set-default ASPD_PRIMARY 1
