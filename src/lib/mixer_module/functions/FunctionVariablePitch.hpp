@@ -35,45 +35,35 @@
 
 #include "FunctionProviderBase.hpp"
 
-#include <uORB/topics/airspeed.h>
-
-template<typename _Tp>
-constexpr _Tp constrain(_Tp val, _Tp min_val, _Tp max_val)
-{
-	return (val < min_val) ? min_val : ((val > max_val) ? max_val : val);
-}
+#include <uORB/topics/actuator_variable_pitch.h>
 
 
 /**
- * @brief Function: VariablePitch (Used for actuating a variable pitch propeller)
+ * @brief Functions: VariablePitch (Used for actuating a variable pitch propeller)
+ *
  */
 class FunctionVariablePitch : public FunctionProviderBase
 {
 public:
-	FunctionVariablePitch() = default;
-	static FunctionProviderBase *allocate(const Context &context) { return new FunctionVariablePitch(); }
 
-	void update() override
+	FunctionVariablePitch(const Context &context): _topic(&context.work_item, ORB_ID(actuator_variable_pitch))
 	{
-		airspeed_s airspeed;
-
-		if (_airspeed_sub.update(&airspeed)) {
-			// PX4_INFO("I am alive!");
-			_data = constrain(airspeed.true_airspeed_m_s / 20.f, 0.f, 1.f);
-			// _data = 0.75f;
-			// if (gripper.command == gripper_s::COMMAND_RELEASE) {
-			// 	_data = -1.f; // Minimum command for release
-
-			// } else if (gripper.command == gripper_s::COMMAND_GRAB) {
-			// 	_data = 1.f; // Maximum command for grab
-
-			// }
+		for (int i = 0; i < actuator_variable_pitch_s::NUM_CONTROLS; ++i) {
+			_data.control[i] = NAN;
 		}
 	}
 
-	float value(OutputFunction func) override { return _data; }
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionVariablePitch(context); }
+
+	void update() override { _topic.update(&_data); }
+
+	bool allowPrearmControl() const override { return true; }
+
+	float value(OutputFunction func) override { return _data.control[(int)func - (int)OutputFunction::Variable_Pitch_Mechanism1]; }
+
+	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
 
 private:
-	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
-	float _data{0.f};
+	uORB::SubscriptionCallbackWorkItem _topic;
+	actuator_variable_pitch_s _data{};
 };

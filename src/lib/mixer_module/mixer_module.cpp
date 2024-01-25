@@ -64,7 +64,7 @@ static const FunctionProvider all_function_providers[] = {
 	{OutputFunction::Gripper, &FunctionGripper::allocate},
 	{OutputFunction::RC_Roll, OutputFunction::RC_AUXMax, &FunctionManualRC::allocate},
 	{OutputFunction::Gimbal_Roll, OutputFunction::Gimbal_Yaw, &FunctionGimbal::allocate},
-	{OutputFunction::VariablePitchPropeller, &FunctionVariablePitch::allocate}
+	{OutputFunction::Variable_Pitch_Mechanism1, OutputFunction::Variable_Pitch_MechanismMax, &FunctionVariablePitch::allocate}
 };
 
 MixingOutput::MixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
