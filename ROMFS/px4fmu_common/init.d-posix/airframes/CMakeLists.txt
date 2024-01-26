@@ -57,6 +57,7 @@ px4_add_romfs_files(
 	1039_gazebo-classic_advanced_plane
 	1040_gazebo-classic_standard_vtol
 	1041_gazebo-classic_tailsitter
+	1041_gazebo-classic_tailsitter_vpp
 	1042_gazebo-classic_tiltrotor
 	1043_gazebo-classic_standard_vtol_drop
 	1044_gazebo-classic_plane_lidar

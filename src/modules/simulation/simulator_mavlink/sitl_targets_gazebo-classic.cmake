@@ -97,6 +97,7 @@ if(gazebo_FOUND)
 		standard_vtol
 		standard_vtol_drop
 		tailsitter
+		tailsitter_vpp
 		techpod
 		tiltrotor
 		typhoon_h480
