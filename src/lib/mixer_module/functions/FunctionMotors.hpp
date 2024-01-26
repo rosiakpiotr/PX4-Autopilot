@@ -35,7 +35,12 @@
 
 #include "FunctionProviderBase.hpp"
 
-#include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/actuator_variable_pitch.h>
+
+#include <uORB/Publication.hpp>
+
 
 /**
  * Functions: Motor1 ... MotorMax
@@ -52,6 +57,8 @@ public:
 		_topic(&context.work_item, ORB_ID(actuator_motors)),
 		_thrust_factor(context.thrust_factor)
 	{
+		_actuator_variable_pitch_pub.advertise();
+
 		for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
 			_data.control[i] = NAN;
 		}
@@ -61,9 +68,43 @@ public:
 
 	void update() override
 	{
-		if (_topic.update(&_data)) {
+		airspeed_validated_s airspeed;
+		bool airspeed_updated = _airspeed_validated_sub.update(&airspeed);
+		bool data_updated = _topic.update(&_data);
+
+		if (airspeed_updated && airspeed.airspeed_sensor_measurement_valid) {
+			_airspeed = airspeed.true_airspeed_m_s;
+		}
+
+		if (data_updated) {
 			updateValues(_data.reversible_flags, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
 		}
+
+		if (airspeed_updated || data_updated) {
+			updateVpp();
+		}
+	}
+
+	void updateVpp()
+	{
+		actuator_variable_pitch_s actuator_vpp;
+		actuator_vpp.timestamp = hrt_absolute_time();
+		actuator_vpp.timestamp_sample = _data.timestamp_sample;
+
+		for (int i = 0; i < actuator_variable_pitch_s::NUM_CONTROLS; ++i) {
+			if (isnan(_data.control[i])) {
+				actuator_vpp.control[i] = NAN;
+				continue;
+			}
+
+			float motor_control = _data.control[i];
+			float pitch_control = (0.314750f) + (-0.601711f) * motor_control + (0.027696f) * _airspeed +
+					      (-0.008669f) * motor_control * _airspeed +
+					      (-0.000068f) * _airspeed * _airspeed;
+			actuator_vpp.control[i] = math::constrain(pitch_control, 0.f, 1.f);
+		}
+
+		_actuator_variable_pitch_pub.publish(actuator_vpp);
 	}
 
 	float value(OutputFunction func) override { return _data.control[(int)func - (int)OutputFunction::Motor1]; }
@@ -119,5 +160,10 @@ public:
 private:
 	uORB::SubscriptionCallbackWorkItem _topic;
 	actuator_motors_s _data{};
+
+	uORB::Publication<actuator_variable_pitch_s> _actuator_variable_pitch_pub{ORB_ID(actuator_variable_pitch)};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	float _airspeed;
+
 	const float &_thrust_factor;
 };

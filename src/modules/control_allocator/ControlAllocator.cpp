@@ -58,7 +58,6 @@ ControlAllocator::ControlAllocator() :
 	_control_allocator_status_pub[1].advertise();
 
 	_actuator_motors_pub.advertise();
-	_actuator_variable_pitch_pub.advertise();
 	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
 
@@ -324,7 +323,6 @@ ControlAllocator::Run()
 		return;
 	}
 
-	// Manifesting flight phase from vehicle_status to current effectiveness source (in case it wants to use it).
 	{
 		vehicle_status_s vehicle_status;
 
@@ -356,16 +354,6 @@ ControlAllocator::Run()
 			_actuator_effectiveness->setFlightPhase(flight_phase);
 		}
 	}
-
-	// Store airspeed value in case control allocators want to use it
-	{
-		airspeed_validated_s airspeed;
-
-		if (_airspeed_validated_sub.update(&airspeed) && airspeed.airspeed_sensor_measurement_valid) {
-			_airspeed = airspeed.true_airspeed_m_s;
-		}
-	}
-
 
 	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 	const hrt_abstime now = hrt_absolute_time();
@@ -439,30 +427,6 @@ ControlAllocator::Run()
 				_control_allocation[i]->applySlewRateLimit(dt);
 			}
 
-// #define VPP
-#ifdef VPP
-			// bool _has_variable_pitch_prop = true;
-
-			// if (_has_variable_pitch_prop) {
-			// 	// Allocate motor's control some to motor and some to vp
-			// 	int motors_idx = 0;
-			// 	int actuator_idx = 0;
-
-			// 	for (motors_idx = 0; motors_idx < _num_actuators[0] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
-			// 		int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
-			// 		float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
-			// 		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
-
-			// 		if (stopped_motors & (1u << motors_idx)) {
-			// 			actuator_motors.control[motors_idx] = NAN;
-			// 		}
-
-			// 		++actuator_idx_matrix[selected_matrix];
-			// 		++actuator_idx;
-			// 	}
-			// }
-
-#endif
 			_control_allocation[i]->clipActuatorSetpoint();
 		}
 	}
@@ -670,22 +634,6 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
 }
 
-void allocateVPP(actuator_motors_s &motors, actuator_variable_pitch_s &vpps, float airspeed)
-{
-	const float p00 =      0.2795;
-	const float p10 =     -0.5839;
-	const float p01 =     0.02942;
-	const float p11 =   -0.009204;
-	const float p02 =  -8.401e-05;
-
-	for (int i = 0; i < 4; i++) {
-		float x = motors.control[i];
-		float y = math::max(airspeed, 10.0f);
-		float z = p00 + p10 * x + p01 * y + p11 * x * y + p02 * y * y;
-		vpps.control[i] = math::constrain(z, 0.f, 1.f);
-	}
-}
-
 void
 ControlAllocator::publish_actuator_controls()
 {
@@ -696,10 +644,6 @@ ControlAllocator::publish_actuator_controls()
 	actuator_servos_s actuator_servos;
 	actuator_servos.timestamp = actuator_motors.timestamp;
 	actuator_servos.timestamp_sample = _timestamp_sample;
-
-	actuator_variable_pitch_s actuator_vpp;
-	actuator_vpp.timestamp = actuator_motors.timestamp;
-	actuator_vpp.timestamp_sample = _timestamp_sample;
 
 	actuator_motors.reversible_flags = _param_r_rev.get();
 
@@ -726,24 +670,6 @@ ControlAllocator::publish_actuator_controls()
 
 	for (int i = motors_idx; i < actuator_motors_s::NUM_CONTROLS; i++) {
 		actuator_motors.control[i] = NAN;
-		actuator_vpp.control[i] = NAN;
-	}
-
-	// In case there is more VPP controls than motors
-	for (int i = motors_idx; i < actuator_variable_pitch_s::NUM_CONTROLS; i++) {
-		actuator_vpp.control[i] = NAN;
-	}
-
-	auto flight_phase = _actuator_effectiveness->getFlightPhase();
-
-	if (flight_phase == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT) {
-		allocateVPP(actuator_motors, actuator_vpp, _airspeed);
-		_actuator_variable_pitch_pub.publish(actuator_vpp);
-
-	} else {
-		// for (int i = 0; i < 4; i++) {
-		// 	actuator_vpp.control[i] = 0.4;
-		// }
 	}
 
 	_actuator_motors_pub.publish(actuator_motors);
