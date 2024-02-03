@@ -38,6 +38,7 @@
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/actuator_variable_pitch.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <uORB/Publication.hpp>
 
@@ -55,7 +56,15 @@ public:
 
 	FunctionMotors(const Context &context) :
 		_topic(&context.work_item, ORB_ID(actuator_motors)),
-		_thrust_factor(context.thrust_factor)
+		_thrust_factor(context.thrust_factor),
+		p00(context.vpp_p00),
+		p10(context.vpp_p10),
+		p01(context.vpp_p01),
+		p20(context.vpp_p20),
+		p11(context.vpp_p11),
+		p02(context.vpp_p02),
+		vpp_enabled(context.vpp_enabled),
+		vpp_off_val(context.vpp_off_val)
 	{
 		_actuator_variable_pitch_pub.advertise();
 
@@ -64,23 +73,44 @@ public:
 		}
 	}
 
+	virtual ~FunctionMotors()
+	{
+		_actuator_variable_pitch_pub.unadvertise();
+	}
+
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionMotors(context); }
 
 	void update() override
 	{
 		airspeed_validated_s airspeed;
 		bool airspeed_updated = _airspeed_validated_sub.update(&airspeed);
-		bool data_updated = _topic.update(&_data);
 
-		if (airspeed_updated && airspeed.airspeed_sensor_measurement_valid) {
+		vehicle_status_s vehicle_status;
+		bool vehicle_status_updated = _vehicle_status_sub.update(&vehicle_status);
+
+		if (vehicle_status_updated) {
+			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+				_has_zero_airspeed = true;
+
+			} else {
+				_has_zero_airspeed = false;
+			}
+		}
+
+		if (_has_zero_airspeed) {
+			_airspeed = 0.f;
+
+		} else if (airspeed_updated && airspeed.airspeed_sensor_measurement_valid) {
 			_airspeed = airspeed.true_airspeed_m_s;
 		}
+
+		bool data_updated = _topic.update(&_data);
 
 		if (data_updated) {
 			updateValues(_data.reversible_flags, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
 		}
 
-		if (airspeed_updated || data_updated) {
+		if (airspeed_updated || data_updated || vehicle_status_updated) {
 			updateVpp();
 		}
 	}
@@ -92,15 +122,20 @@ public:
 		actuator_vpp.timestamp_sample = _data.timestamp_sample;
 
 		for (int i = 0; i < actuator_variable_pitch_s::NUM_CONTROLS; ++i) {
+			if (!vpp_enabled) {
+				actuator_vpp.control[i] = vpp_off_val;
+				continue;
+			}
+
 			if (isnan(_data.control[i])) {
 				actuator_vpp.control[i] = NAN;
 				continue;
 			}
 
 			float motor_control = _data.control[i];
-			float pitch_control = (0.314750f) + (-0.601711f) * motor_control + (0.027696f) * _airspeed +
-					      (-0.008669f) * motor_control * _airspeed +
-					      (-0.000068f) * _airspeed * _airspeed;
+			float pitch_control = p00 + p10 * motor_control + p01 * _airspeed +
+					      p20 * motor_control * motor_control + p11 * motor_control * _airspeed +
+					      p02 * _airspeed * _airspeed;
 			actuator_vpp.control[i] = math::constrain(pitch_control, 0.f, 1.f);
 		}
 
@@ -163,7 +198,19 @@ private:
 
 	uORB::Publication<actuator_variable_pitch_s> _actuator_variable_pitch_pub{ORB_ID(actuator_variable_pitch)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	float _airspeed;
+	bool _has_zero_airspeed;
 
 	const float &_thrust_factor;
+
+	// VPP control equation coefficients
+	const float &p00;
+	const float &p10;
+	const float &p01;
+	const float &p20;
+	const float &p11;
+	const float &p02;
+	const int &vpp_enabled;
+	const float &vpp_off_val;
 };

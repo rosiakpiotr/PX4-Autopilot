@@ -48,6 +48,15 @@ public:
 	struct Context {
 		px4::WorkItem &work_item;
 		const float &thrust_factor;
+
+		const float &vpp_p00;
+		const float &vpp_p10;
+		const float &vpp_p01;
+		const float &vpp_p20;
+		const float &vpp_p11;
+		const float &vpp_p02;
+		const int &vpp_enabled;
+		const float &vpp_off_val;
 	};
 
 	FunctionProviderBase() = default;

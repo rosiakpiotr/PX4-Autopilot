@@ -298,6 +298,15 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
-		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac ///< thrust to motor control signal modelling factor
+		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
+
+		(ParamFloat<px4::params::VPP_P00>) _param_vpp_p00,
+		(ParamFloat<px4::params::VPP_P10>) _param_vpp_p10,
+		(ParamFloat<px4::params::VPP_P01>) _param_vpp_p01,
+		(ParamFloat<px4::params::VPP_P20>) _param_vpp_p20,
+		(ParamFloat<px4::params::VPP_P11>) _param_vpp_p11,
+		(ParamFloat<px4::params::VPP_P02>) _param_vpp_p02,
+		(ParamInt<px4::params::VPP_EN>) _param_vpp_enabled,
+		(ParamFloat<px4::params::VPP_OFF_VAL>) _param_vpp_off_val
 	)
 };
