@@ -260,9 +260,19 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 
 	cleanupFunctions();
 
-	const FunctionProviderBase::Context context{_interface, _param_thr_mdl_fac.reference(), _param_vpp_p00.reference(),
-			_param_vpp_p10.reference(), _param_vpp_p01.reference(), _param_vpp_p20.reference(), _param_vpp_p11.reference(),
-			_param_vpp_p02.reference(), .vpp_enabled = _param_vpp_enabled.reference(), .vpp_off_val = _param_vpp_off_val.reference()};
+	const FunctionProviderBase::Context context{_interface,
+			_param_thr_mdl_fac.reference(),
+			_param_vpp_p00.reference(),
+			_param_vpp_p10.reference(),
+			_param_vpp_p01.reference(),
+			_param_vpp_p20.reference(),
+			_param_vpp_p11.reference(),
+			_param_vpp_p02.reference(),
+			.vpp_enabled = _param_vpp_enabled.reference(),
+			.vpp_off_val = _param_vpp_off_val.reference(),
+			.airspeed_threshold = _param_vpp_aspd_threshold.reference(),
+			.vpp_low_aspd_value = _param_vpp_low_aspd_value.reference()
+						   };
 	int provider_indexes[MAX_ACTUATORS] {};
 	int next_provider = 0;
 	int subscription_callback_provider_index = INT_MAX;

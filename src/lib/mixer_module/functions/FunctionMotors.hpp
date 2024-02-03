@@ -64,7 +64,9 @@ public:
 		p11(context.vpp_p11),
 		p02(context.vpp_p02),
 		vpp_enabled(context.vpp_enabled),
-		vpp_off_val(context.vpp_off_val)
+		vpp_off_val(context.vpp_off_val),
+		vpp_airspeed_threshold(context.airspeed_threshold),
+		vpp_low_aspd_value(context.vpp_low_aspd_value)
 	{
 		_actuator_variable_pitch_pub.advertise();
 
@@ -85,22 +87,7 @@ public:
 		airspeed_validated_s airspeed;
 		bool airspeed_updated = _airspeed_validated_sub.update(&airspeed);
 
-		vehicle_status_s vehicle_status;
-		bool vehicle_status_updated = _vehicle_status_sub.update(&vehicle_status);
-
-		if (vehicle_status_updated) {
-			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				_has_zero_airspeed = true;
-
-			} else {
-				_has_zero_airspeed = false;
-			}
-		}
-
-		if (_has_zero_airspeed) {
-			_airspeed = 0.f;
-
-		} else if (airspeed_updated && airspeed.airspeed_sensor_measurement_valid) {
+		if (airspeed_updated && airspeed.airspeed_sensor_measurement_valid) {
 			_airspeed = airspeed.true_airspeed_m_s;
 		}
 
@@ -110,7 +97,7 @@ public:
 			updateValues(_data.reversible_flags, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
 		}
 
-		if (airspeed_updated || data_updated || vehicle_status_updated) {
+		if (airspeed_updated || data_updated) {
 			updateVpp();
 		}
 	}
@@ -129,6 +116,11 @@ public:
 
 			if (isnan(_data.control[i])) {
 				actuator_vpp.control[i] = NAN;
+				continue;
+			}
+
+			if (_airspeed < vpp_airspeed_threshold) {
+				actuator_vpp.control[i] = vpp_low_aspd_value;
 				continue;
 			}
 
@@ -198,9 +190,7 @@ private:
 
 	uORB::Publication<actuator_variable_pitch_s> _actuator_variable_pitch_pub{ORB_ID(actuator_variable_pitch)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	float _airspeed;
-	bool _has_zero_airspeed;
 
 	const float &_thrust_factor;
 
@@ -213,4 +203,6 @@ private:
 	const float &p02;
 	const int &vpp_enabled;
 	const float &vpp_off_val;
+	const float &vpp_airspeed_threshold;
+	const float &vpp_low_aspd_value;
 };
