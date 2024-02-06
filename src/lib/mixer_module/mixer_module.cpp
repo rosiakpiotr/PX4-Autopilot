@@ -271,7 +271,6 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 			.vpp_enabled = _param_vpp_enabled.reference(),
 			.vpp_off_val = _param_vpp_off_val.reference(),
 			.airspeed_threshold = _param_vpp_aspd_threshold.reference(),
-			.vpp_low_aspd_value = _param_vpp_low_aspd_value.reference()
 						   };
 	int provider_indexes[MAX_ACTUATORS] {};
 	int next_provider = 0;

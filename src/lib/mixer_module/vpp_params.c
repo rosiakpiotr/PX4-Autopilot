@@ -87,14 +87,3 @@ PARAM_DEFINE_FLOAT(VPP_OFF_VAL, 0.5f);
  * @group Variable Pitch
  */
 PARAM_DEFINE_FLOAT(VPP_ASPD_THRSHLD, 9.0f);
-
-
-/**
- * VPP control value when airspeed is below threshold.
- *
- * @min 0
- * @max 1
- * @decimal 2
- * @group Variable Pitch
- */
-PARAM_DEFINE_FLOAT(VPP_LOW_ASPD_VAL, 0.25f);

@@ -308,7 +308,6 @@ private:
 		(ParamFloat<px4::params::VPP_P02>) _param_vpp_p02,
 		(ParamInt<px4::params::VPP_EN>) _param_vpp_enabled,
 		(ParamFloat<px4::params::VPP_OFF_VAL>) _param_vpp_off_val,
-		(ParamFloat<px4::params::VPP_ASPD_THRSHLD>) _param_vpp_aspd_threshold,
-		(ParamFloat<px4::params::VPP_LOW_ASPD_VAL>) _param_vpp_low_aspd_value
+		(ParamFloat<px4::params::VPP_ASPD_THRSHLD>) _param_vpp_aspd_threshold
 	)
 };

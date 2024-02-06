@@ -65,8 +65,7 @@ public:
 		p02(context.vpp_p02),
 		vpp_enabled(context.vpp_enabled),
 		vpp_off_val(context.vpp_off_val),
-		vpp_airspeed_threshold(context.airspeed_threshold),
-		vpp_low_aspd_value(context.vpp_low_aspd_value)
+		vpp_airspeed_threshold(context.airspeed_threshold)
 	{
 		_actuator_variable_pitch_pub.advertise();
 
@@ -119,15 +118,11 @@ public:
 				continue;
 			}
 
-			if (_airspeed < vpp_airspeed_threshold) {
-				actuator_vpp.control[i] = vpp_low_aspd_value;
-				continue;
-			}
-
+			float effective_airspeed = _airspeed < vpp_airspeed_threshold ? 0 : _airspeed;
 			float motor_control = _data.control[i];
-			float pitch_control = p00 + p10 * motor_control + p01 * _airspeed +
-					      p20 * motor_control * motor_control + p11 * motor_control * _airspeed +
-					      p02 * _airspeed * _airspeed;
+			float pitch_control = p00 + p10 * motor_control + p01 * effective_airspeed +
+					      p20 * motor_control * motor_control + p11 * motor_control * effective_airspeed +
+					      p02 * effective_airspeed * effective_airspeed;
 			actuator_vpp.control[i] = math::constrain(pitch_control, 0.f, 1.f);
 		}
 
@@ -204,5 +199,4 @@ private:
 	const int &vpp_enabled;
 	const float &vpp_off_val;
 	const float &vpp_airspeed_threshold;
-	const float &vpp_low_aspd_value;
 };

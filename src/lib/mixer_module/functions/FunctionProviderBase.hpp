@@ -58,7 +58,6 @@ public:
 		const int &vpp_enabled;
 		const float &vpp_off_val;
 		const float &airspeed_threshold;
-		const float &vpp_low_aspd_value;
 	};
 
 	FunctionProviderBase() = default;
