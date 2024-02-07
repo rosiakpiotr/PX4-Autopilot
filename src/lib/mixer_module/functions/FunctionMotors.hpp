@@ -92,12 +92,13 @@ public:
 
 		bool data_updated = _topic.update(&_data);
 
-		if (data_updated) {
-			updateValues(_data.reversible_flags, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
-		}
-
+		// Update VPP before thrust factor modifies motor control values.
 		if (airspeed_updated || data_updated) {
 			updateVpp();
+		}
+
+		if (data_updated) {
+			updateValues(_data.reversible_flags, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
 		}
 	}
 
